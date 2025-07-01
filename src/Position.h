@@ -3,8 +3,6 @@
 
 #include "Constants.h"
 
-#include <cstdint>
-#include <iostream>
 #include <type_traits>
 
 namespace sudoku
@@ -22,8 +20,8 @@ namespace sudoku
 		constexpr Position(const Position&) = default;
 		explicit constexpr Position(const std::size_t& board_index)
 		{
-			column = board_index/board_size;
-			row = board_index%board_size;
+			column = board_index%board_size;
+			row = board_index/board_size;
 		}
 		template <typename T, typename L, typename = std::enable_if_t<std::is_integral<T>::value>, typename = std::enable_if_t<std::is_integral<L>::value>>
 		explicit constexpr Position(T column, L row) : column(static_cast<unsigned>(column)), row(static_cast<unsigned>(row)) {}
@@ -31,12 +29,12 @@ namespace sudoku
 
 	constexpr std::size_t to_index(const Position& position)
 	{
-		return board_size*position.column+position.row;
+		return board_size*position.row+position.column;
 	}
-    
-	constexpr std::size_t box_index(const Position& position)
+
+	constexpr Position box_position(const Position& position)
 	{
-		return (position.column/box_size)*box_size+position.row/box_size;
+		return Position{(position.column/box_size)*box_size, (position.row/box_size)*box_size};
 	}
 }
 

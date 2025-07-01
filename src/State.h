@@ -1,36 +1,40 @@
-#ifndef STATE_H
-#define STATE_H
+#ifndef	STATE_H
+#define	STATE_H
 
 #include "Move.h"
-#include "Position.h"
 
 #include <array>
-#include <cstdint>
+#include <bitset>
 #include <generator>
 #include <string>
 #include <stack>
 
 namespace sudoku
 {
-    struct State
-    {
-        public:
+	struct State
+	{
+		public:
 
-        State(const std::string& file_name);
+		State(const	std::string& file_name);
 
-        [[nodiscard]] std::generator<Move> lazy_move_generation() const noexcept;
-        [[nodiscard]] bool is_solved() const noexcept;
-        void move(const Move& move) noexcept;
-        void unmove() noexcept;
+		[[nodiscard]] std::generator<Move> lazy_move_generation() const	noexcept;
+		[[nodiscard]] bool is_solved() const noexcept;
+		void move(const	Move& move)	noexcept;
+		void unmove() noexcept;
 
-        private:
+		private:
 
-        void update_legal_moves(const Move& move) noexcept;
+		enum class Move_type
+		{
+			moving, unmoving, size
+		};
 
-        std::stack<Move> previous_moves_;
-        std::size_t original_squares_used{0};
-        std::array<std::bitset<board_size>, board_size*board_size> legal_moves_{{}};
-    };
+		void update_legal_moves(const Move&	move) noexcept;
+		using Legal_moves=std::array<std::bitset<board_size>,	board_size*board_size>;
+		Legal_moves legal_moves_{std::bitset<board_size>(0x1FF)};
+		std::stack<Legal_moves> previous_moves_;
+		std::size_t	original_squares_used{0};
+	};
 };
 
 #endif // STATE_H_INCLUDED

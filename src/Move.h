@@ -1,6 +1,8 @@
 #ifndef MOVE_H
 #define MOVE_H
 
+#include <ostream>
+
 #include "Position.h"
 
 namespace sudoku

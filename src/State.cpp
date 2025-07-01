@@ -1,81 +1,106 @@
 #include "State.h"
+#include "Constants.h"
 
+#include <algorithm>
+#include <bit>
 #include <cctype>
+#include <cstdint>
 #include <fstream>
+#include <iterator>
 #include <sstream>
 
-using namespace sudoku;
+using namespace	sudoku;
 
 void State::update_legal_moves(const Move& move) noexcept
 {
-    
+	for(std::size_t i{0}; i<board_size; ++i)
+	{
+		legal_moves_[to_index(Position{i, move.position.row})].reset(move.value);
+		legal_moves_[to_index(Position{move.position.column, i})].reset(move.value);
+	}
+
+	for(std::size_t column_offset{0}; column_offset<box_size; ++column_offset)
+	{
+		for(std::size_t row_offset{0}; row_offset<box_size; ++row_offset)
+		{
+			legal_moves_[to_index(box_position(move.position)+Position{column_offset, row_offset})].reset(move.value);
+		}
+	}
+
+	legal_moves_[to_index(move.position)].reset();
 }
 
 State::State(const std::string& filename)
 {
-    std::ifstream file(filename);
-    original_squares_used=0;
-    int index{0};
-    for(std::string line; std::getline(file, line);)
-    {
-        std::istringstream iss{line};
-        std::string cell;
-        while(std::getline(iss, cell, ','))
-        {
-            if(!cell.empty() && std::isdigit(cell[0]) && cell[0] != '0')
-            {
-                int value=cell[0]-'0'-1;
-                Position current_position{index};
-                update_legal_moves(Move{current_position, value});
-                ++original_squares_used;
-            }
-            ++index;
-        }
-    }
+	std::ifstream file(filename);
+	original_squares_used=0;
+	const std::bitset<board_size> all_set_bits(0x1FF);
+	legal_moves_.fill(all_set_bits);
+	for(std::size_t r{0}; r<board_size; ++r)
+	{
+		std::string line;
+		if(!std::getline(file, line))
+			break;
+
+		std::istringstream iss{line};
+		for(std::size_t c=0; c<board_size; ++c)
+		{
+			std::string	cell;
+			if(!std::getline(iss, cell, ','))
+				break;
+
+			if(!cell.empty() && std::isdigit(cell[0]) && cell[0]!='0')
+			{
+				std::size_t	value=cell[0]-'1';
+				Position current_position{c, r};
+				move(Move{current_position, value});
+				++original_squares_used;
+			}
+		}
+	}
+	previous_moves_={};
 }
 
 void State::move(const Move& move) noexcept
 {
-    previous_moves_.push(move);
-    filled_squares_[to_index(move.position)]=true;
-    rows_[move.position.row][move.value]=true;
-    columns_[move.position.column][move.value]=true;
-    boxes_[box_index(move.position)][move.value]=true;
+	previous_moves_.push(legal_moves_);
+	update_legal_moves(move);
 }
 
 void State::unmove() noexcept
 {
-    const Move last_move{std::move(previous_moves_.top())};
-    previous_moves_.pop();
-    filled_squares_[to_index(last_move.position)]=false;
-    rows_[last_move.position.row][last_move.value]=false;
-    columns_[last_move.position.column][last_move.value]=false;
-    boxes_[box_index(last_move.position)][last_move.value]=false;
+	legal_moves_=std::move(previous_moves_.top());
+	previous_moves_.pop();
 }
 
 std::generator<Move> State::lazy_move_generation() const noexcept
 {
-    for(std::size_t column{0}; column<board_size; ++column)
-    {
-        for(std::size_t row{0}; row<board_size; ++row) 
-        {
-            Position current_position{column, row};
-            if(filled_squares_[to_index(current_position)])
-                continue;
-            const auto& row_contains = rows_[row];
-            const auto& column_contains = columns_[column];
-            const auto& box_contains = boxes_[box_index(current_position)];
-            for(std::size_t value{0}; value<board_size; ++value)
-            {
-                if(row_contains[value] || column_contains[value] || box_contains[value])
-                    continue;
-                co_yield Move{std::move(current_position), value};
-            }
-        }
-    }
+	auto& moves_range=legal_moves_;
+	auto best_it=std::ranges::find_if(moves_range, [](const auto& moves){ return moves.count()==1; });
+	if(best_it==moves_range.end())
+	{
+		best_it = std::ranges::min_element(moves_range,	[](const auto& lhs, const auto& rhs)
+		{
+			if (lhs.count()==0) return false;
+			if (rhs.count()==0) return true;
+			return lhs.count()<rhs.count();
+		});
+	}
+
+	if(best_it==moves_range.end() || best_it->count()==0)
+		co_return;
+
+	const auto best_index=std::distance(moves_range.begin(), best_it);
+	const Position best_position(best_index);
+	for	(std::uint16_t legal_moves_copy=best_it->to_ulong(); legal_moves_copy>0;)
+	{
+		const std::size_t value=std::countr_zero(legal_moves_copy);
+		co_yield Move{best_position, value};
+		legal_moves_copy&=legal_moves_copy-1;
+	}
 }
 
-bool State::is_solved() const noexcept
+bool State::is_solved()	const noexcept
 {
-    return previous_moves_.size()==(board_size*board_size-original_squares_used);
+	return previous_moves_.size()==(board_size*board_size-original_squares_used);
 }
