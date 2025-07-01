@@ -4,7 +4,6 @@
 #include "Move.h"
 #include "Position.h"
 
-
 #include <array>
 #include <cstdint>
 #include <generator>
@@ -26,12 +25,11 @@ namespace sudoku
 
         private:
 
+        void update_legal_moves(const Move& move) noexcept;
+
         std::stack<Move> previous_moves_;
         std::size_t original_squares_used{0};
-        std::array<std::array<bool, board_size>, board_size> rows_{{}};
-        std::array<std::array<bool, board_size>, board_size> columns_{{}};
-        std::array<std::array<bool, board_size>, board_size> boxes_{{}};
-        std::array<bool, board_size*board_size> filled_squares_{{}};
+        std::array<std::bitset<board_size>, board_size*board_size> legal_moves_{{}};
     };
 };
 

@@ -6,6 +6,11 @@
 
 using namespace sudoku;
 
+void State::update_legal_moves(const Move& move) noexcept
+{
+    
+}
+
 State::State(const std::string& filename)
 {
     std::ifstream file(filename);
@@ -21,10 +26,7 @@ State::State(const std::string& filename)
             {
                 int value=cell[0]-'0'-1;
                 Position current_position{index};
-                filled_squares_[index]=true;
-                rows_[current_position.row][value]=true;
-                columns_[current_position.column][value]=true;
-                boxes_[box_index(current_position)][value]=true;
+                update_legal_moves(Move{current_position, value});
                 ++original_squares_used;
             }
             ++index;
