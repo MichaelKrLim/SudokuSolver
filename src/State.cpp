@@ -34,8 +34,8 @@ State::State(const std::string& filename)
 {
 	std::ifstream file(filename);
 	original_squares_used=0;
-	const std::bitset<board_size> all_set_bits(0x1FF);
-	legal_moves_.fill(all_set_bits);
+	for(auto& square : legal_moves_)
+		square.set();
 	for(std::size_t r{0}; r<board_size; ++r)
 	{
 		std::string line;
@@ -49,9 +49,9 @@ State::State(const std::string& filename)
 			if(!std::getline(iss, cell, ','))
 				break;
 
-			if(!cell.empty() && std::isdigit(cell[0]) && cell[0]!='0')
+			if(!cell.empty())
 			{
-				std::size_t	value=cell[0]-'1';
+				std::size_t	value=std::stoi(cell)-1;
 				Position current_position{c, r};
 				move(Move{current_position, value});
 				++original_squares_used;
@@ -92,7 +92,7 @@ std::generator<Move> State::lazy_move_generation() const noexcept
 
 	const auto best_index=std::distance(moves_range.begin(), best_it);
 	const Position best_position(best_index);
-	for	(std::uint16_t legal_moves_copy=best_it->to_ulong(); legal_moves_copy>0;)
+	for(std::uint16_t legal_moves_copy=best_it->to_ulong(); legal_moves_copy>0;)
 	{
 		const std::size_t value=std::countr_zero(legal_moves_copy);
 		co_yield Move{best_position, value};

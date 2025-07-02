@@ -30,8 +30,8 @@ namespace sudoku
 		};
 
 		void update_legal_moves(const Move&	move) noexcept;
-		using Legal_moves=std::array<std::bitset<board_size>,	board_size*board_size>;
-		Legal_moves legal_moves_{std::bitset<board_size>(0x1FF)};
+		using Legal_moves=std::array<std::bitset<board_size>, board_size*board_size>;
+		Legal_moves legal_moves_;
 		std::stack<Legal_moves> previous_moves_;
 		std::size_t	original_squares_used{0};
 	};

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <print>
 
+#include "Board.h"
 #include "State.h"
 #include "Solver.h"
 
@@ -15,7 +16,8 @@ int	main(int argc, const char* argv[])
 		std::cout<<"usage <filepath>";
 
 	State state{argv[1]};
-	const auto output_line = [](const std::vector<Move>& line)
+	Board board{argv[1]};
+	[[maybe_unused]] const auto output_line = [](const std::vector<Move>& line)
 	{
 		std::print("solution: ");
 		for(const auto& move : line)
@@ -25,5 +27,9 @@ int	main(int argc, const char* argv[])
 	if(solution==std::nullopt)
 		std::println("no solution found");
 	else
-		output_line(solution.value());
+	{
+		for(const auto& move : solution.value())
+			board.move(move);
+		std::print("solution:\n{}\n", board.pretty_print());
+	}
 }
